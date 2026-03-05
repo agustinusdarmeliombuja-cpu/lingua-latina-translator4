@@ -1,73 +1,81 @@
 const express = require('express');
 const { OpenAI } = require('openai');
 const cors = require('cors');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
 app.use(express.json());
-app.use(cors()); // Mengizinkan HTML mengakses server ini
+app.use(cors());
 
-// Konfigurasi OpenAI
+// Agar file index.html bisa langsung dibuka via server
+app.use(express.static(__dirname));
+
 const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY, // Ambil key dari file .env
+    apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Endpoint Utama untuk Terjemahan
 app.post('/api/translate', async (req, res) => {
     try {
         const { text } = req.body;
 
-        if (!text) {
-            return res.status(400).json({ error: "Teks tidak boleh kosong" });
+        if (!process.env.OPENAI_API_KEY) {
+            console.error("ERROR: API Key tidak ditemukan di file .env");
+            return res.status(500).json({ error: "Konfigurasi server salah (API Key hilang)." });
         }
 
-        // PROMPT UNTUK AI
+        console.log(`Menerima permintaan terjemahan: "${text}"`);
+
         const response = await openai.chat.completions.create({
-            model: "gpt-4o", // Atau gpt-4o-mini untuk biaya lebih murah
+            model: "gpt-4o-mini", // Menggunakan model mini agar lebih cepat dan murah
             messages: [
                 {
                     role: "system",
-                    content: `Anda adalah Magister Linguae Latinae. 
-                    Tugas Anda adalah menerjemahkan teks Latin ke Bahasa Indonesia untuk guru dan siswa.
-                    
-                    WAJIB MEMBERIKAN OUTPUT DALAM FORMAT JSON BERIKUT:
+                    content: `Anda adalah pakar bahasa Latin. 
+                    Tugas: Terjemahkan dan analisis teks Latin ke Bahasa Indonesia.
+                    Output WAJIB dalam format JSON murni tanpa markdown, tanpa tanda petik backtick.
+                    Format JSON:
                     {
-                        "terjemahan": "Hasil terjemahan yang puitis namun akurat",
-                        "parsing_tabel": [
-                            {
-                                "kata": "Kata Latin",
-                                "jenis": "Noun/Verb/Adj/Prep",
-                                "analisis": "Detail (Kasus, Gender, Number atau Tense, Mood, Person)",
-                                "arti": "Arti kata tunggal"
-                            }
-                        ],
-                        "sintaksis": "Penjelasan struktur kalimat (seperti Ablative Absolute, dll)",
-                        "konteks": "Info sejarah atau kutipan tokoh jika ada"
+                        "terjemahan": "string",
+                        "parsing_tabel": [{"kata": "string", "jenis": "string", "analisis": "string", "arti": "string"}],
+                        "sintaksis": "string",
+                        "konteks": "string"
                     }`
                 },
                 {
                     role: "user",
-                    content: `Terjemahkan dan analisislah teks ini: "${text}"`
+                    content: text
                 }
             ],
-            response_format: { type: "json_object" }, // Memastikan output selalu JSON
             temperature: 0.3,
         });
 
-        const hasilAI = JSON.parse(response.choices[0].message.content);
-        res.json(hasilAI);
+        // Membersihkan output AI jika ada tanda backtick ```json
+        let rawContent = response.choices[0].message.content;
+        rawContent = rawContent.replace(/```json/g, "").replace(/```/g, "").trim();
+
+        const dataFinal = JSON.parse(rawContent);
+        console.log("Berhasil memproses terjemahan.");
+        res.json(dataFinal);
 
     } catch (error) {
-        console.error("Error Server:", error);
-        res.status(500).json({ error: "Terjadi kesalahan pada server AI." });
+        console.error("DETIL ERROR:", error.message);
+        res.status(500).json({ 
+            error: "Gagal memproses data.",
+            details: error.message 
+        });
     }
 });
 
-// Jalankan Server
-const PORT = 5000;
+// Menjalankan index.html saat akses ke "/"
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-    console.log(`-----------------------------------------`);
-    console.log(`Server Magister Linguae berjalan!`);
-    console.log(`URL: http://localhost:${PORT}`);
-    console.log(`-----------------------------------------`);
+    console.log(`=========================================`);
+    console.log(`✅ SERVER AKTIF DI: http://localhost:${PORT}`);
+    console.log(`👉 Silakan buka link di atas di browser!`);
+    console.log(`=========================================`);
 });
