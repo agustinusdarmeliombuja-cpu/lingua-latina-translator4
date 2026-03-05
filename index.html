@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Magister Linguae - Translator Latin Edukatif</title>
+    <!-- Tailwind CSS untuk styling cepat dan cantik -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Google untuk kesan klasik -->
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .serif { font-family: 'Crimson Pro', serif; }
+        .latin-bg { background-color: #fdfaf6; } /* Warna kertas tua yang elegan */
+    </style>
+</head>
+<body class="latin-bg min-h-screen pb-10">
+
+    <!-- Header -->
+    <header class="bg-indigo-900 text-white py-8 shadow-lg mb-8">
+        <div class="container mx-auto px-4 text-center">
+            <h1 class="serif text-4xl md:text-5xl font-bold mb-2">Magister Linguae</h1>
+            <p class="text-indigo-200 italic font-light">Asisten Penerjemah & Analisis Tata Bahasa Latin untuk Guru & Siswa</p>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 max-w-4xl">
+        <!-- Input Section -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+            <label for="latinInput" class="block text-sm font-semibold text-gray-700 mb-2">Masukkan Teks Latin:</label>
+            <textarea id="latinInput" rows="4" 
+                class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all serif text-xl"
+                placeholder="Contoh: Amicus certus in re incerta cernitur..."></textarea>
+            
+            <button onclick="handleTranslate()" id="btnTranslate"
+                class="mt-4 w-full bg-indigo-700 hover:bg-indigo-800 text-white font-bold py-3 px-6 rounded-lg transition-colors flex justify-center items-center">
+                <span>Terjemahkan & Analisis</span>
+                <div id="loader" class="hidden ml-3 border-2 border-t-transparent border-white w-5 h-5 rounded-full animate-spin"></div>
+            </button>
+        </div>
+
+        <!-- Result Section (Hidden by Default) -->
+        <div id="resultContainer" class="hidden space-y-6 animate-fade-in">
+            
+            <!-- Terjemahan -->
+            <div class="bg-white border-l-4 border-indigo-600 rounded-lg shadow p-6">
+                <h2 class="text-indigo-900 font-bold uppercase text-xs tracking-widest mb-2">Terjemahan Utama</h2>
+                <p id="txtTerjemahan" class="serif text-2xl text-gray-800 leading-relaxed italic"></p>
+            </div>
+
+            <!-- Tabel Analisis -->
+            <div class="bg-white rounded-lg shadow overflow-hidden">
+                <div class="bg-gray-50 px-6 py-3 border-b border-gray-200">
+                    <h2 class="text-gray-700 font-bold uppercase text-xs tracking-widest">Analisis Gramatikal (Parsing)</h2>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-indigo-50">
+                            <tr>
+                                <th class="px-6 py-3 text-xs font-semibold text-indigo-700 uppercase">Kata</th>
+                                <th class="px-6 py-3 text-xs font-semibold text-indigo-700 uppercase">Jenis</th>
+                                <th class="px-6 py-3 text-xs font-semibold text-indigo-700 uppercase">Analisis (Kasus/Tense/Gender)</th>
+                                <th class="px-6 py-3 text-xs font-semibold text-indigo-700 uppercase">Arti</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody" class="divide-y divide-gray-100 text-sm">
+                            <!-- Data JSON akan masuk di sini -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Penjelasan Sintaksis & Konteks -->
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h2 class="text-indigo-900 font-bold uppercase text-xs tracking-widest mb-3 border-b pb-2 text-blue-600">Struktur Sintaksis</h2>
+                    <p id="txtSintaksis" class="text-gray-600 text-sm leading-relaxed"></p>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h2 class="text-indigo-900 font-bold uppercase text-xs tracking-widest mb-3 border-b pb-2 text-amber-600">Konteks & Sejarah</h2>
+                    <p id="txtKonteks" class="text-gray-600 text-sm leading-relaxed"></p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        async function handleTranslate() {
+            const input = document.getElementById('latinInput').value;
+            const btn = document.getElementById('btnTranslate');
+            const loader = document.getElementById('loader');
+            const resultContainer = document.getElementById('resultContainer');
+
+            if (!input) return alert("Silakan masukkan teks!");
+
+            // Loading state
+            btn.disabled = true;
+            loader.classList.remove('hidden');
+
+            try {
+                // Ganti URL ini dengan URL backend Anda (misal: http://localhost:5000/api/translate)
+                const response = await fetch('/api/translate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: input })
+                });
+
+                const data = await response.json();
+                
+                // Parsing data JSON yang diterima dari AI
+                renderResults(data);
+
+                resultContainer.classList.remove('hidden');
+            } catch (error) {
+                console.error("Error:", error);
+                alert("Gagal menghubungi server backend.");
+            } finally {
+                btn.disabled = false;
+                loader.classList.add('hidden');
+            }
+        }
+
+        function renderResults(data) {
+            // Karena output AI dalam format JSON, kita mapping ke elemen HTML
+            document.getElementById('txtTerjemahan').innerText = `"${data.terjemahan}"`;
+            document.getElementById('txtSintaksis').innerText = data.sintaksis;
+            document.getElementById('txtKonteks').innerText = data.konteks || "Tidak ada data sejarah khusus.";
+
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = ''; // Reset tabel
+
+            data.parsing_tabel.forEach(item => {
+                const row = `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 font-bold text-indigo-900">${item.kata}</td>
+                        <td class="px-6 py-4 text-gray-500 text-xs">${item.jenis}</td>
+                        <td class="px-6 py-4 text-gray-700 italic">${item.analisis}</td>
+                        <td class="px-6 py-4 text-gray-600">${item.arti}</td>
+                    </tr>
+                `;
+                tableBody.innerHTML += row;
+            });
+        }
+    </script>
+</body>
+</html>
