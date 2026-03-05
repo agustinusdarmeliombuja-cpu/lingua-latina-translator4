@@ -1,89 +1,86 @@
-// 1. Load Environment Variables (Harus di baris paling atas!)
-require('dotenv').config();
-
-const express = require('express');
-const { OpenAI } = require('openai');
-const cors = require('cors');
-const path = require('path');
-
-const app = express();
-
-// 2. Middleware
-app.use(express.json());
-app.use(cors());
-app.use(express.static(__dirname)); // Melayani file index.html secara otomatis
-
-// 3. Validasi API Key (Mencegah error sebelum server jalan)
-if (!process.env.OPENAI_API_KEY) {
-    console.error("❌ ERROR: OPENAI_API_KEY tidak ditemukan di file .env!");
-    console.error("Pastikan Anda sudah membuat file .env dan mengisi API Key.");
-    process.exit(1); // Hentikan server jika kunci tidak ada
-}
-
-// 4. Inisialisasi OpenAI
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
-
-// 5. Endpoint Terjemahan & Analisis
-app.post('/api/translate', async (req, res) => {
-    try {
-        const { text } = req.body;
-
-        if (!text) {
-            return res.status(400).json({ error: "Teks Latin kosong!" });
-        }
-
-        console.log(`--- Memproses Teks: "${text}" ---`);
-
-        const response = await openai.chat.completions.create({
-            model: "gpt-4o-mini", // Model cepat dan akurat untuk JSON
-            messages: [
-                {
-                    role: "system",
-                    content: `Anda adalah Magister Linguae Latinae (Pakar Bahasa Latin). 
-                    Tugas: Terjemahkan teks ke Bahasa Indonesia dan berikan analisis gramatikal lengkap.
-                    
-                    OUTPUT WAJIB DALAM FORMAT JSON MURNI:
-                    {
-                        "terjemahan": "string",
-                        "parsing_tabel": [
-                            {"kata": "string", "jenis": "string", "analisis": "string", "arti": "string"}
-                        ],
-                        "sintaksis": "string",
-                        "konteks": "string"
-                    }`
-                },
-                {
-                    role: "user",
-                    content: text
-                }
-            ],
-            response_format: { type: "json_object" }, // Memaksa AI memberikan JSON
-            temperature: 0.3
-        });
-
-        // Mengambil hasil dari AI
-        const result = JSON.parse(response.choices[0].message.content);
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Magister Linguae</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>body { background-color: #fdfaf6; font-family: 'Georgia', serif; }</style>
+</head>
+<body class="p-10">
+    <div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-lg border border-amber-200">
+        <h1 class="text-4xl text-center text-indigo-900 mb-6">🏛️ Magister Linguae</h1>
         
-        console.log("✅ Berhasil menganalisis teks.");
-        res.json(result);
+        <textarea id="inputTeks" class="w-full p-4 border rounded-lg text-xl mb-4" placeholder="Masukkan teks Latin..."></textarea>
+        
+        <button onclick="translate()" id="btn" class="w-full bg-indigo-700 text-white py-3 rounded-lg font-bold hover:bg-indigo-800 transition">
+            Analis & Terjemahkan
+        </button>
 
-    } catch (error) {
-        console.error("❌ Detail Error:", error.message);
-        res.status(500).json({ 
-            error: "Gagal menghubungi OpenAI.",
-            details: error.message 
-        });
-    }
-});
+        <div id="loading" class="hidden text-center mt-4 text-indigo-600 animate-bounce">Sedang menganalisis teks klasik...</div>
 
-// 6. Jalankan Server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`===========================================`);
-    console.log(`🚀 Server Magister Linguae Aktif!`);
-    console.log(`🌐 Akses di: http://localhost:${PORT}`);
-    console.log(`🔑 Status API Key: TERHUBUNG`);
-    console.log(`===========================================`);
-});
+        <div id="hasil" class="hidden mt-8 space-y-6">
+            <div class="p-4 bg-indigo-50 border-l-4 border-indigo-600">
+                <h3 class="font-bold text-indigo-800">Terjemahan:</h3>
+                <p id="txtTerjemahan" class="text-xl italic"></p>
+            </div>
+            
+            <table class="w-full border-collapse border mt-4">
+                <thead>
+                    <tr class="bg-indigo-100 text-left">
+                        <th class="p-2 border">Kata</th>
+                        <th class="p-2 border">Analisis</th>
+                        <th class="p-2 border">Arti</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelBody"></tbody>
+            </table>
+
+            <div class="p-4 bg-amber-50 rounded-lg">
+                <h3 class="font-bold text-amber-800">Sintaksis & Konteks:</h3>
+                <p id="txtSintaksis" class="text-sm"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function translate() {
+            const text = document.getElementById('inputTeks').value;
+            const btn = document.getElementById('btn');
+            const loading = document.getElementById('loading');
+            const hasil = document.getElementById('hasil');
+
+            if(!text) return alert("Isi teks dulu!");
+
+            btn.disabled = true;
+            loading.classList.remove('hidden');
+            hasil.classList.add('hidden');
+
+            try {
+                const response = await fetch('/api/translate', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ text })
+                });
+
+                const data = await response.json();
+
+                document.getElementById('txtTerjemahan').innerText = data.terjemahan;
+                document.getElementById('txtSintaksis').innerText = data.sintaksis + " " + data.konteks;
+                
+                const tbody = document.getElementById('tabelBody');
+                tbody.innerHTML = "";
+                data.parsing_tabel.forEach(item => {
+                    tbody.innerHTML += `<tr><td class="p-2 border font-bold">${item.kata}</td><td class="p-2 border italic">${item.analisis}</td><td class="p-2 border">${item.arti}</td></tr>`;
+                });
+
+                hasil.classList.remove('hidden');
+            } catch (e) {
+                alert("Error: " + e.message);
+            } finally {
+                btn.disabled = false;
+                loading.classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
