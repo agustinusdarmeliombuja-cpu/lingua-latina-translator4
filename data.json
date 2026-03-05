@@ -1,0 +1,44 @@
+[
+  {
+    "latin": "amare",
+    "indonesia": "mencintai",
+    "tipe": "Kata Kerja (Verb)",
+    "deskripsi": "Konjugasi pertama. Dasar dari kata 'amor'.",
+    "contoh": "Ego te amo (Aku mencintaimu)."
+  },
+  {
+    "latin": "magister",
+    "indonesia": "guru / pengajar",
+    "tipe": "Kata Benda (Noun)",
+    "deskripsi": "Maskulin, deklinasi kedua. Merujuk pada seseorang yang ahli.",
+    "contoh": "Magister docet (Guru sedang mengajar)."
+  },
+  {
+    "latin": "discipulus",
+    "indonesia": "murid / siswa",
+    "tipe": "Kata Benda (Noun)",
+    "deskripsi": "Maskulin, deklinasi kedua.",
+    "contoh": "Discipulus legit (Murid sedang membaca)."
+  },
+  {
+    "latin": "liber",
+    "indonesia": "buku",
+    "tipe": "Kata Benda (Noun)",
+    "deskripsi": "Maskulin, deklinasi kedua.",
+    "contoh": "Hic est liber meus (Ini adalah bukuku)."
+  },
+  {
+    "latin": "schola",
+    "indonesia": "sekolah",
+    "tipe": "Kata Benda (Noun)",
+    "deskripsi": "Feminin, deklinasi pertama.",
+    "contoh": "Ad scholam imus (Kami pergi ke sekolah)."
+  },
+  {
+    "latin": "venire",
+    "indonesia": "datang",
+    "tipe": "Kata Kerja (Verb)",
+    "deskripsi": "Konjugasi keempat.",
+    "contoh": "Veni, vidi, vici (Saya datang, saya melihat, saya menang)."
+  }
+]
